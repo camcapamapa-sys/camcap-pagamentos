@@ -5,6 +5,8 @@ import {
   dueDateThisMonth,
   isPaidThisMonth,
   loadState,
+  aliquotaCamcapLabel,
+  calcularHonorariosCamcap,
   money,
   novoProcesso,
   progress,
@@ -211,7 +213,10 @@ export default function App() {
                   <tr key={p.id}>
                     <td>
                       <div className="names">{p.numero}</div>
-                      <small className="muted">CAMCAP {money(p.honorariosCamcap)}</small>
+                      <small className="muted">
+                        CAMCAP {money(p.honorariosCamcap)}
+                        {p.valorCausa ? ` (${aliquotaCamcapLabel(p.valorCausa)})` : ""}
+                      </small>
                     </td>
                     <td>
                       <div className="names">
@@ -302,6 +307,12 @@ function Detail({ proc, onClose, onPay, onSave }) {
             <div className="grid">
               <Field label="Demandante">{proc.demandante}<div className="muted">{proc.contatoDemandante}</div></Field>
               <Field label="Demandado">{proc.demandado}<div className="muted">{proc.contatoDemandado}</div></Field>
+              <Field label="Valor da causa">
+                {money(proc.valorCausa || 0)}
+                {proc.valorCausa ? (
+                  <div className="muted">Aliquota {aliquotaCamcapLabel(proc.valorCausa)}</div>
+                ) : null}
+              </Field>
               <Field label="Valor acordado">{money(proc.valorAcordado)}</Field>
               <Field label="Honorarios CAMCAP">{money(proc.honorariosCamcap)}</Field>
               <Field label="Parcela">{money(proc.valorParcela)} · dia {proc.diaVencimento}</Field>
@@ -343,6 +354,7 @@ function Detail({ proc, onClose, onPay, onSave }) {
               onSave({
                 ...proc,
                 ...form,
+                valorCausa: Number(form.valorCausa || 0),
                 valorAcordado: Number(form.valorAcordado),
                 honorariosCamcap: Number(form.honorariosCamcap),
                 valorParcela: Number(form.valorParcela),
@@ -362,8 +374,32 @@ function Detail({ proc, onClose, onPay, onSave }) {
               <Field label="Contato demandante"><input value={form.contatoDemandante} onChange={(e) => set("contatoDemandante", e.target.value)} /></Field>
               <Field label="Demandado"><input value={form.demandado} onChange={(e) => set("demandado", e.target.value)} /></Field>
               <Field label="Contato demandado"><input value={form.contatoDemandado} onChange={(e) => set("contatoDemandado", e.target.value)} /></Field>
+              <Field label="Valor da causa">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.valorCausa ?? ""}
+                  onChange={(e) => {
+                    const valorCausa = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      valorCausa,
+                      honorariosCamcap: calcularHonorariosCamcap(valorCausa),
+                    }));
+                  }}
+                />
+                <div className="muted">
+                  {Number(form.valorCausa) > 0
+                    ? `Aliquota ${aliquotaCamcapLabel(form.valorCausa)} aplicada automaticamente`
+                    : "De R$ 100 a R$ 50 mil: 20% · ate R$ 500 mil: 10% · acima: 5%"}
+                </div>
+              </Field>
               <Field label="Valor acordado"><input type="number" step="0.01" value={form.valorAcordado} onChange={(e) => set("valorAcordado", e.target.value)} /></Field>
-              <Field label="Honorarios CAMCAP"><input type="number" step="0.01" value={form.honorariosCamcap} onChange={(e) => set("honorariosCamcap", e.target.value)} /></Field>
+              <Field label="Honorarios CAMCAP">
+                <input type="number" step="0.01" value={form.honorariosCamcap} readOnly />
+                <div className="muted">Calculado automaticamente pelo valor da causa</div>
+              </Field>
               <Field label="Valor parcela"><input type="number" step="0.01" value={form.valorParcela} onChange={(e) => set("valorParcela", e.target.value)} /></Field>
               <Field label="N. parcelas"><input type="number" value={form.totalParcelas} onChange={(e) => set("totalParcelas", e.target.value)} /></Field>
               <Field label="Parcelas pagas"><input type="number" value={form.parcelasPagas} onChange={(e) => set("parcelasPagas", e.target.value)} /></Field>
@@ -428,6 +464,7 @@ function CreateModal({ onClose, onCreate }) {
     contatoDemandante: "",
     demandado: "",
     contatoDemandado: "",
+    valorCausa: "",
     valorAcordado: "",
     honorariosCamcap: "",
     valorParcela: "",
@@ -455,8 +492,33 @@ function CreateModal({ onClose, onCreate }) {
             <Field label="Contato demandante"><input value={form.contatoDemandante} onChange={(e) => set("contatoDemandante", e.target.value)} /></Field>
             <Field label="Demandado"><input value={form.demandado} onChange={(e) => set("demandado", e.target.value)} required /></Field>
             <Field label="Contato demandado"><input value={form.contatoDemandado} onChange={(e) => set("contatoDemandado", e.target.value)} /></Field>
+            <Field label="Valor da causa">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.valorCausa}
+                onChange={(e) => {
+                  const valorCausa = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    valorCausa,
+                    honorariosCamcap: calcularHonorariosCamcap(valorCausa),
+                  }));
+                }}
+                required
+              />
+              <div className="muted">
+                {Number(form.valorCausa) > 0
+                  ? `Aliquota ${aliquotaCamcapLabel(form.valorCausa)} aplicada automaticamente`
+                  : "De R$ 100 a R$ 50 mil: 20% · ate R$ 500 mil: 10% · acima: 5%"}
+              </div>
+            </Field>
             <Field label="Valor acordado"><input type="number" step="0.01" value={form.valorAcordado} onChange={(e) => set("valorAcordado", e.target.value)} required /></Field>
-            <Field label="Honorarios CAMCAP"><input type="number" step="0.01" value={form.honorariosCamcap} onChange={(e) => set("honorariosCamcap", e.target.value)} /></Field>
+            <Field label="Honorarios CAMCAP">
+              <input type="number" step="0.01" value={form.honorariosCamcap} readOnly />
+              <div className="muted">Calculado automaticamente pelo valor da causa</div>
+            </Field>
             <Field label="Valor parcela"><input type="number" step="0.01" value={form.valorParcela} onChange={(e) => set("valorParcela", e.target.value)} required /></Field>
             <Field label="N. parcelas"><input type="number" value={form.totalParcelas} onChange={(e) => set("totalParcelas", e.target.value)} /></Field>
             <Field label="Obs" className="full"><textarea value={form.obs} onChange={(e) => set("obs", e.target.value)} /></Field>

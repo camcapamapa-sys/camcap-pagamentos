@@ -134,7 +134,27 @@ export function registrarPagamento(proc, payload) {
   };
 }
 
+export function aliquotaCamcap(valor) {
+  const v = Number(valor) || 0;
+  if (v <= 0) return 0;
+  if (v <= 50000) return 0.2;
+  if (v <= 500000) return 0.1;
+  return 0.05;
+}
+
+export function calcularHonorariosCamcap(valor) {
+  const v = Number(valor) || 0;
+  return Math.round(v * aliquotaCamcap(v) * 100) / 100;
+}
+
+export function aliquotaCamcapLabel(valor) {
+  const a = aliquotaCamcap(valor);
+  if (!a) return "";
+  return `${Math.round(a * 100)}%`;
+}
+
 export function novoProcesso(data) {
+  const valorCausa = Number(data.valorCausa || data.valorAcordado || 0);
   const valor = Number(data.valorAcordado || 0);
   const parcela = Number(data.valorParcela || 0);
   const nparc = Number(data.totalParcelas || 0) || (parcela ? Math.ceil(valor / parcela) : 0);
@@ -145,8 +165,11 @@ export function novoProcesso(data) {
     contatoDemandante: data.contatoDemandante || "",
     demandado: data.demandado || "",
     contatoDemandado: data.contatoDemandado || "",
+    valorCausa,
     valorAcordado: valor,
-    honorariosCamcap: Number(data.honorariosCamcap || Math.round(valor * 0.2 * 100) / 100),
+    honorariosCamcap: Number(
+      data.honorariosCamcap || calcularHonorariosCamcap(valorCausa || valor)
+    ),
     valorParcela: parcela,
     totalParcelas: nparc,
     parcelasPagas: 0,
