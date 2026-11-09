@@ -16,6 +16,7 @@ import {
   todayISO,
   waLink,
 } from "./lib/store.js";
+import { abrirRecibo } from "./lib/recibo.js";
 
 const FILTERS = [
   { id: "todos", label: "Todos" },
@@ -120,6 +121,8 @@ export default function App() {
     updateProc(id, next);
     setPaying(null);
     setSelected(next);
+    const ultimo = next.pagamentos[next.pagamentos.length - 1];
+    if (ultimo) abrirRecibo(next, ultimo);
   }
 
   function exportJson() {
@@ -133,9 +136,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div>
-          <h1 className="brand">CAMCAP Matriz</h1>
-          <p className="sub">Controle de pagamentos mensais dos processos em andamento</p>
+        <div className="brand-block">
+          <img src="/logo-camcap.webp" alt="CAMCAP" />
+          <div>
+            <h1 className="brand">Camara de Arbitragem, Mediacao e Conciliacao do Amapa - CAMCAP</h1>
+            <p className="sub">Controle de Pagamento de Processos Arbitrais</p>
+          </div>
         </div>
         <div className="actions">
           <button className="btn" onClick={exportJson}>Exportar backup</button>
@@ -318,7 +324,11 @@ function Detail({ proc, onClose, onPay, onSave }) {
                 <ul>
                   {[...proc.pagamentos].reverse().map((pg) => (
                     <li key={pg.id}>
-                      <span>{pg.data} · {pg.forma}{pg.obs ? " · " + pg.obs : ""}</span>
+                      <span>
+                        {pg.data} · {pg.forma}{pg.obs ? " · " + pg.obs : ""}
+                        {" "}
+                        <button className="btn ghost" type="button" onClick={() => abrirRecibo(proc, pg)}>Reimprimir recibo</button>
+                      </span>
                       <strong>{money(pg.valor)}</strong>
                     </li>
                   ))}
@@ -402,7 +412,7 @@ function PayModal({ proc, onClose, onConfirm }) {
             <Field label="Obs"><input value={obs} onChange={(e) => setObs(e.target.value)} /></Field>
           </div>
           <div className="actions">
-            <button className="btn primary" type="submit">Confirmar baixa</button>
+            <button className="btn primary" type="submit">Confirmar baixa e imprimir recibo</button>
             <button className="btn ghost" type="button" onClick={onClose}>Cancelar</button>
           </div>
         </form>

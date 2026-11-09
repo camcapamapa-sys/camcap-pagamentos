@@ -127,6 +127,8 @@ export function registrarPagamento(proc, payload) {
         valor,
         forma: payload.forma || "PIX",
         obs: payload.obs || "",
+        parcelaNumero: parcelasPagas,
+        reciboNumero: `${proc.numero || "PROC"}-${String(parcelasPagas).padStart(3, "0")}`,
       },
     ],
   };
